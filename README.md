@@ -1,5 +1,7 @@
 ## Arhitecturi și prelucrări paralele - laboratoare
 
+![Drag Racing](media/logo/app.png)
+
 ### Laboratoare
 - [Laboratorul 1](lab1/README.md)
 - [Laboratorul 2](lab2/README.md)
