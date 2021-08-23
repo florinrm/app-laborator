@@ -20,4 +20,5 @@
 
 ## Exerciții
 1) **(2 puncte)** Descărcați scheletul de laborator și demo-ul pentru laborator. Rulați exemplele din demo.
+ 
 2) **(8 puncte)** Paralelizați însumarea elementelor unui array, încât suma să fie corectă, folosind fișierul `array_sum.c` din schelet, unde este implementată suma serială a elementelor dintr-un array.
