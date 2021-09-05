@@ -57,13 +57,110 @@ int main(int argc, char** argv) {
 }
 ```
 
+De asemenea, putem avea regiuni paralele imbricate:
+```c
+```c
+#include <stdio.h>
+#include <omp.h>
+
+int main(int argc, char** argv) {
+    #pragma omp parallel 
+    {
+        printf("Parallel region thread %d\n", omp_get_thread_num());
+        
+        #pragma omp parallel 
+        {
+            printf("Nested parallel region thread %d\n", omp_get_thread_num());
+        }
+    }
+    return 0;
+}
+```
+
 ## Funcții utile
 
 ## Vizibilitatea variabilelor
 
 ## Paralelizarea buclelor
+În OpenMP putem paraleliza buclele de tip for folosind directiva `#pragma omp for` în cadrul unei zone paralele. În acest fel, iterațiile din for sunt împărțite egal thread-urilor, fiecare thread având iterațiile sale din cadrul buclei for.
+
+Paralelizarea buclelor poate fi eficientizată folosind directiva `SCHEDULE`, despre care vom discuta în laboratorul 2.
+
+Exemplu de folosire:
+```c
+#include <stdio.h>
+#include <omp.h>
+
+int main(int argc, char** argv) {
+    int i, x[20];
+    #pragma omp parallel private(i) shared(x) 
+    {
+        #pragma omp for 
+        for (i = 0; i < 20; i++) {
+            x[i] = i;
+            printf("iteration no. %d | thread no. %d\n", i, omp_get_thread_num());
+        }
+    }
+
+    printf("\n");
+
+    // o alta forma, aceeasi functionalitate
+    #pragma omp parallel for private(i) shared(x) 
+    for (i = 0; i < 20; i++) {
+        x[i] = i;
+        printf("iteration no. %d | thread no. %d\n", i, omp_get_thread_num());
+    }
+
+    return 0;
+}
+```
 
 ## Elemente de sincronizare
+În OpenMP avem la dispoziție elemente de sincronizare, prin care putem să ne asigurăm faptul că soluția paralelizată funcționează corect, fără probleme în ceea ce privește rezultatele incorecte sau deadlocks.
+
+### Mutex
+Pentru zonele critice, unde avem operații de read-write, folosim directiva `#pragma omp critical`, care reprezintă un mutex, echivalentul lui `pthread_mutex_t` din pthreads, care asigură faptul că un singur thread accesează zona critică la un moment dat, thread-ul deținând lock-ul pe zona critică în momentul respectiv, și că celelalte thread-uri care nu au intrat încă în zona critică așteaptă eliberarea lock-ului de către thread-ul aflat în zona critică în acel moment.
+
+Exemplu de folosire:
+```c
+#include <stdio.h>
+#include <omp.h>
+
+int main (int argc, char** argv) {
+    int thread_id, sum = 0;
+    #pragma omp parallel private(thread_id) shared(sum)
+    {
+        thread_id = omp_get_thread_num();
+        #pragma omp critical
+        sum += thread_id;
+    }
+    printf("%d",sum);
+    
+    return 0;
+}
+```
+
+### Barieră
+Un alt element de sincronizare reprezintă bariera, care asigură faptul că niciun thread gestionat de barieră nu trece mai departe de aceasta decât atunci cand toate thread-urile gestionate de barieră au ajuns la punctul unde se află bariera.
+
+În OpenMP, pentru barieră avem directiva `#pragma omp barrier`, echivalent cu `pthread_barrier_t` din pthreads.
+
+Exemplu de folosire:
+```c
+#include <stdio.h>
+#include <omp.h>
+
+int main (int argc, char** argv) {
+    #pragma omp parallel 
+    {
+        printf("First print by %d\n", omp_get_thread_num());
+        #pragma omp barrier
+        printf("Second print by %d\n", omp_get_thread_num());
+    }
+    
+    return 0;
+}
+```
 
 ## Reduction
 `reduction` este o directivă folosită pentru operații de tip reduce / fold pe arrays / colecții sau simple însumări / înmulțiri în cadrul unui loop. Mai precis, elementele dintr-un array sau indecșii unui loop sunt "acumulați" într-o singură variabilă, cu ajutorul unei operații, al cărui semn este precizat.
