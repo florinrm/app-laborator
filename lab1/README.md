@@ -86,3 +86,7 @@ for (i = 1; i <= num_steps; i++) {
 1) **(2 puncte)** Descărcați [scheletul de laborator](https://github.com/florinrm/app-laborator/tree/main/lab1/skel) și [demo-ul pentru laborator](https://github.com/florinrm/app-laborator/tree/main/lab1/demo). Rulați exemplele din demo.
  
 2) **(8 puncte)** Paralelizați însumarea elementelor unui array, încât suma să fie corectă, folosind fișierul `array_sum.c` din schelet, unde este implementată suma serială a elementelor dintr-un array.
+
+## Resurse utile
+- http://jakascorner.com/blog/
+- https://ppc.cs.aalto.fi/
