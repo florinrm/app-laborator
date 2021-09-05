@@ -59,7 +59,6 @@ int main(int argc, char** argv) {
 
 De asemenea, putem avea regiuni paralele imbricate:
 ```c
-```c
 #include <stdio.h>
 #include <omp.h>
 
