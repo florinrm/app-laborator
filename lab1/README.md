@@ -77,8 +77,72 @@ int main(int argc, char** argv) {
 ```
 
 ## Funcții utile
+Pentru setarea numărului de thread-uri din cadrul programului paralelizat, putem să facem în două moduri:
+- din linia de comandă: `export OMP_NUM_THREADS=8`
+- din cod: `omp_set_num_threads(8)`
+
+Dacă dorim să măsurăm timpul de execuție al unei secvențe de cod paralelizat, putem folosi `omp_get_wtime()`. Exemplu de folosire:
+```c
+t1 = omp_get_wtime();
+#pragma omp parallel 
+{
+    int tid = omp_get_thread_num();
+    printf("Hello world from thread number %d\n", tid);
+}
+t2 = omp_get_wtime();
+printf("Total execution time = %lf\n", (t2 - t1));
+```
+
+Alte funcții utile:
+- numărul de threads: `omp_get_num_threads()`
+- id-ul thread-ului curent: `omp_get_thread_num()`
+- numărul de procesoare: `omp_get_num_procs()`
 
 ## Vizibilitatea variabilelor
+Variabilele în cadrul blocurilor paralele pot fi:
+- globale - văzute și partajate de toate thread-urile
+- private - fiecare thread are variabilele sale private care nu sunt vizibile către alte thread-uri
+
+În acest caz avem două clauze pentru context:
+- `SHARED` - variabilă partajată între thread-uri (exemplu: `SHARED(c)`)
+- `PRIVATE` - variabilă văzută doar de thread-ul respectiv în blocul paralelizat (exemplu: `PRIVATE(a, b)`)
+
+Exemplu:
+```c
+#include <stdio.h>
+#include <omp.h>
+
+int main(int argc, char** argv) {
+    int a = 6, b = 9, c = 10;
+
+    #pragma omp parallel private(a,b) shared(c) 
+    {
+        // privates set the scope of variables
+        a = 1, b = 2, c = a + b; // cu private(a, b), aceste valori (la a si b) vor fi vizibile doar in acest bloc
+        int tid = omp_get_thread_num();
+        printf("In parallel block, in thread no %d: %d %d %d\n", tid, a, b, c); // printing 1 2 3
+    }
+    printf("%d %d %d\n", a, b, c); // printing 6 9 3
+
+    #pragma omp parallel shared(c) 
+    {
+        a = 1, b = 2, c = a + b;
+        int tid = omp_get_thread_num();
+        printf("In parallel block, in thread no %d: %d %d %d\n", tid, a, b, c); // printing 1 2 3
+    }
+    printf("%d %d %d\n", a, b, c); // printing 1 2 3
+
+    #pragma omp parallel 
+    {
+        a = 1, b = 2, c = a + b;
+        int tid = omp_get_thread_num();
+        printf("In parallel block, in thread no %d: %d %d %d\n", tid, a, b, c); // printing 1 2 3
+    }
+    printf("%d %d %d\n", a, b, c); // printing 1 2 3
+
+    return 0;
+}
+```
 
 ## Paralelizarea buclelor
 În OpenMP putem paraleliza buclele de tip for folosind directiva `#pragma omp for` în cadrul unei zone paralele. În acest fel, iterațiile din for sunt împărțite egal thread-urilor, fiecare thread având iterațiile sale din cadrul buclei for.
