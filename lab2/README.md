@@ -46,7 +46,7 @@ Static schedule este util de folosit atunci când se știe că există echilibru
 
 ### Cum poate influența valoarea `chunk_size` performanțele
 
-Să luam următorul exemplu de cod, unde `w(int i)` este o funcție a cărei complexitate este influențată de parametrul de intrare i:
+Să luam următorul exemplu de cod (rulând cu 4 threads), unde `w(int i)` este o funcție a cărei complexitate este influențată de parametrul de intrare i:
 ```c
 a();
 #pragma omp parallel for
@@ -56,10 +56,20 @@ for (int i = 0; i < 16; ++i) {
 z();
 ```
 
-Grafic, fără niciun tip de scheduling, performanța ar fi ilustrată în felul următor:
+Grafic, fără niciun tip de scheduling, performanța este ilustrată în felul următor:
 ![no_schedule](../media/lab2/parallel_for_uneven.png)
 
 Aici se poate observa un dezechilibru în ceea ce privește workload-ul între thread-uri, thread-ul 3 având un workload dublu față de thread-ul 0.
+
+Dacă setăm `chunk_size` cu 1, performanța este ilustrată în felul următor:
+![schedule_1](../media/lab2/parallel_for_uneven_static.png)
+
+În acest caz, thread-urile au un workload echilibrat, datorită distribuirii uniforme a iterațiilor din for, așadar avem o performanță bună.
+
+Dacă setăm `chunk_size` cu 2, performanța este ilustrată în felul următor:
+![schedule_2](../media/lab2/parallel_for_uneven_static2.png)
+
+În acest caz, se observă un dezechilibru între thread-uri din punctul de vedere al workload-ului, implicând o performanță mai proastă decât în cazul când `chunk_size` este setat cu 1.
 ## Dynamic scheduling
 ## Guided scheduling
 ## Auto scheduling
