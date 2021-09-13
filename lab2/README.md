@@ -71,8 +71,75 @@ Dacă setăm `chunk_size` cu 2, performanța este ilustrată în felul următor:
 
 În acest caz, se observă un dezechilibru între thread-uri din punctul de vedere al workload-ului, implicând o performanță mai proastă decât în cazul când `chunk_size` este setat cu 1.
 ## Dynamic scheduling
+În cadrul dynamic scheduling, iterațiile sunt împărțite în chunks de dimensiune chunk_size, ca la static scheduling, însă diferența față de static scheduling este că iterațiile nu sunt distribuite într-o anumită ordine către thread-uri, așa cum se întâmplă la static schedule. Dacă nu se precizează valoarea pentru `chunk_size`, atunci va avea valoarea default de 1.
+
+Dynamic schedule este folosit atunci când avem iterații total debalansate în ceea ce privește workload-ul (în timp ce la static schedule putem intui un pattern de workload între iterații - acest lucru puteți observa în demo, în fișierul `static_schedule.c`).
+
+Exemplu:
+```c
+#pragma omp parallel for private(i) schedule(dynamic, 2)
+for (i = 0; i < 16; i++) {
+    w(i);
+    printf("iteration no. %d | thread no. %d\n", i, omp_get_thread_num());
+}
+```
+unde `w(i)` este o funcție ce are performanță aleatoare, care poate să nu depindă de parametrul de intrare.
+
+Spre deosebire de static scheduling, la dynamic scheduling există comunicare între threads după fiecare iterație, cu scopul de a construi o împărțire a iterațiilor între thread-uri, pentru a avea workload-urile între thread-uri cât mai balansate, fapt ce duce la overhead.
+
+După fiecare rulare, împărțirea iterațiilor către thread-uri se schimbă.
+
+Un exemplu grafic ar fi următorul:
+- aici nu folosim niciun tip de schedule:
+![no_schedule](../media/lab2/parallel_for_uneven_static2.png)
+- aici folosim dynamic schedule și se poate observa că nu există distribuție uniformă a iterațiilor către thread-uri:
+![dynamic_schedule](../media/lab2/parallel_for_random_dynamic.png)
+
+De reținut faptul că dynamic schedule poate să nu fie mereu optim și este posibil ca static schedule să fie o soluție mai bună, cum ar fi în acest exemplu (static cu `chunk_size = 1`):
+![static_schedule](../media/lab2/parallel_for_random_static.png)
 ## Guided scheduling
+TODO
 ## Auto scheduling
+La auto scheduling, tipul de scheduling (static, dynamic, guided) este determinat la compilare și/sau la runtime.
+
+Exemplu:
+```c
+#pragma omp parallel for private(i) schedule(auto)
+for (i = 0; i < 16; i++) {
+    w(i);
+    printf("iteration no. %d | thread no. %d\n", i, omp_get_thread_num());
+}
+```
 ## nowait
+TODO
+
+Exemplu:
+```c
+#pragma omp parallel
+{
+    #pragma omp for nowait private(i)
+    for (i = 0; i < 16; i++) {
+        c(i);
+    }
+    d();
+}
+```
+## Reduction - recapitulare
+`reduction` este o directivă folosită pentru operații de tip reduce / fold pe arrays / colecții sau simple însumări / înmulțiri în cadrul unui loop. Mai precis, elementele dintr-un array sau indecșii unui loop sunt "acumulați" într-o singură variabilă, cu ajutorul unei operații, al cărui semn este precizat.
+
+Tipar: `reduction(operator_operatie:variabila_in_care_se_acumuleaza)`
+
+Exemplu de reduction: `reduction(+:sum)`, unde se însumează elementele unui array în variabila `sum`
+
+Exemplu de folosire de reduction:
+```c
+int sum = 0;
+
+#pragma omp parallel for reduction(+:sum) private(i)
+for (i = 1; i <= num_steps; i++) {
+    sum += i;
+}
+```
 ## Exerciții
+TODO
 ## Resurse
