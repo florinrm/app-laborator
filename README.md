@@ -9,3 +9,6 @@
 - [Laboratorul 4](lab4/README.md)
 - [Laboratorul 5](lab5/README.md)
 - [Laboratorul 6](lab6/README.md)
+
+### Proiect
+- [Despre proiect](proiect/README.md)
