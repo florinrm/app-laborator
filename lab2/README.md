@@ -162,7 +162,7 @@ for (i = 1; i <= num_steps; i++) {
 ```
 ## Exerciții
 1) **(1 punct)** Rulați [demo-urile](https://github.com/florinrm/app-laborator/tree/main/lab2/demo) legate de schedule și modificați valorile la ``chunk_size``, unde să faceți observații legate de performanțe. De asemenea, puteți schimba și tipul de schedule, pentru a observa eventuale schimbări în privința performanței.
-2)  
-3) 
-4)
+2) **(3 puncte)** Paralelizați fișierul `atan.c` din [schelet](https://github.com/florinrm/app-laborator/tree/main/lab2/skel) folosind reduction.
+3) **(3 puncte)** Rulați programul din fișierul `schedule.c` din schelet de mai multe ori și schimbați tipurile de schedule (cu tot cu `chunk_size`) și observați performanțele.
+4) **(3 puncte)** Generați fișiere folosind scriptul gen_files.sh și paralelizați programul din fișierul `count_letters.cpp` din schelet.
 ## Resurse
