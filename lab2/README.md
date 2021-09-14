@@ -111,7 +111,7 @@ for (i = 0; i < 16; i++) {
 }
 ```
 ## nowait
-TODO
+Atunci când paralelizăm un for, există o barieră după fiecare for paralelizat, unde se așteaptă ca toate thread-urile din for-ul paralelizat să ajungă în același punct în același timp, ca apoi să-și continue execuția.
 
 Exemplu:
 ```c
@@ -124,6 +124,26 @@ Exemplu:
     d();
 }
 ```
+
+În exemplul de mai sus, thread-urile din for-ul paralelizat trebuie să ajungă în același punct (să se sincronizeze), ca apoi să execute funcția `d()`.
+
+![without_nowait](../media/lab2/parallel_for_4.png)
+
+Pentru a elimina această barieră / sincronizare, putem folosi directiva `nowait`, prin care thread-urile nu mai așteaptă ca fiecare să ajungă în același punct (să fie sincronizate încât să fie în același punct în același timp), astfel un thread, după ce trece de for-ul paralelizat, trece imediat la execuția următoarelor instrucțiunilor, fără să mai aștepte după celelalte thread-uri.
+
+Exemplu:
+```c
+#pragma omp parallel
+{
+    #pragma omp for nowait private(i)
+    for (i = 0; i < 16; i++) {
+        c(i);
+    }
+    d();
+}
+```
+
+![nowait](../media/lab2/parallel_for_nowait.png)
 ## Reduction - recapitulare
 `reduction` este o directivă folosită pentru operații de tip reduce / fold pe arrays / colecții sau simple însumări / înmulțiri în cadrul unui loop. Mai precis, elementele dintr-un array sau indecșii unui loop sunt "acumulați" într-o singură variabilă, cu ajutorul unei operații, al cărui semn este precizat.
 
@@ -141,5 +161,8 @@ for (i = 1; i <= num_steps; i++) {
 }
 ```
 ## Exerciții
-TODO
+1) **(1 punct)** Rulați [demo-urile](https://github.com/florinrm/app-laborator/tree/main/lab2/demo) legate de schedule și modificați valorile la ``chunk_size``, unde să faceți observații legate de performanțe. De asemenea, puteți schimba și tipul de schedule, pentru a observa eventuale schimbări în privința performanței.
+2)  
+3) 
+4)
 ## Resurse
