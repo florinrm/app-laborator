@@ -98,7 +98,20 @@ Un exemplu grafic ar fi următorul:
 De reținut faptul că dynamic schedule poate să nu fie mereu optim și este posibil ca static schedule să fie o soluție mai bună, cum ar fi în acest exemplu (static cu `chunk_size = 1`):
 ![static_schedule](../media/lab2/parallel_for_random_static.png)
 ## Guided scheduling
-TODO
+Guided scheduling se aseamănă cu dynamic schedule, în sensul că avem o împărțire pe chunks și distribuire neuniformă a iterațiilor.
+
+Diferența față de dynamic schedule constă în dimensiunea chunk-urilor. Dimensiunea unui chunk este proporțională cu numărul de iterații neasignate în acel moment thread-ului împărțit la numărul de threads, la început un chunk putând avea dimensiunea `nr_iterații / nr_threads`, ca pe parcurs să scadă dimensiunea acestuia. De exemplu la Valoarea la chunk_size (dacă nu avem, default este 1) reprezintă dimensiunea minimă pe care o poate avea un chunk (se poate ca ultimele chunk să aibă o dimensiune mai mică decât dimensiunea dată unui chunk). 
+
+Exemplu:
+```c
+#pragma omp parallel for private(i) schedule(guided, 2)
+for (i = 0; i < 16; i++) {
+    w(i);
+    printf("iteration no. %d | thread no. %d\n", i, omp_get_thread_num());
+}
+```
+
+Guided schedule este folosit când între iterații există un dezechilibru major în ceea ce privește workload-ul.
 ## Auto scheduling
 La auto scheduling, tipul de scheduling (static, dynamic, guided) este determinat la compilare și/sau la runtime.
 
@@ -165,4 +178,7 @@ for (i = 1; i <= num_steps; i++) {
 2) **(3 puncte)** Paralelizați fișierul `atan.c` din [schelet](https://github.com/florinrm/app-laborator/tree/main/lab2/skel) folosind reduction.
 3) **(3 puncte)** Rulați programul din fișierul `schedule.c` din schelet de mai multe ori și schimbați tipurile de schedule (cu tot cu `chunk_size`) și observați performanțele.
 4) **(3 puncte)** Generați fișiere folosind scriptul gen_files.sh și paralelizați programul din fișierul `count_letters.cpp` din schelet.
-## Resurse
+## Resurse utile
+- http://jakascorner.com/blog/
+- https://ppc.cs.aalto.fi/
+- [dynamic scheduling vs. guided scheduling](https://stackoverflow.com/questions/42970700/openmp-dynamic-vs-guided-scheduling)
