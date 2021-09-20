@@ -1,7 +1,150 @@
 # Laboratorul 3 - Advanced OpenMP
 ## Sections
+Uneori dorim să distribuim ca thread-uri diferite să execute task-uri diferite în același timp. În această privință ne vine de ajutor conceptul de sections, prin care două sau mai multe thread-uri execută două sau mai multe sections corespunzătoare acestora (adică thread-urilor, fiecare thread cu un section).
+
+În OpenMP se folosește directiva `sections` pentru a marca o zonă din cod în care distribuim task-urile diferite (sections) thread-urilor (fiecare thread cu câte un section). Sintaxa în OpenMP este următoarea:
+```c
+#pragma omp parallel 
+{
+    // se marchează blocul de sections
+    #pragma omp sections
+    {
+        #pragma omp section
+        {
+            // section executat de thread-ul X
+        }
+        
+        #pragma omp section
+        {
+            // section executat de thread-ul Y
+        }
+
+        #pragma omp section
+        {
+            // section executat de thread-ul Z
+        }           
+    }
+
+    #pragma omp sections
+    {
+        #pragma omp section
+        {
+            // section executat de thread-ul X
+        }
+        
+        #pragma omp section
+        {
+            // section executat de thread-ul Y
+        }
+    }
+}
+
+#pragma omp parallel sections
+{
+    #pragma omp section
+    {
+        // section executat de thread-ul X
+    }
+        
+    #pragma omp section
+    {
+        // section executat de thread-ul Y
+    }
+}
+```
+
+![sections](../media/lab3/sections.png)
 ## Single
+Dacă dorim ca o secvență de cod (dintr-o bucată de cod paralelizat) să fie executat doar de un singur thread, folosim directiva SINGLE. Aceasta este folosită, de regulă, în operații I/O.
+
+Exemplu:
+```c
+#pragma omp parallel
+{
+    #pragma omp single
+    {
+        // cod executat de un singur thread
+    }
+}
+```
+### Master
+Directiva MASTER este o particularizare a directivei SINGLE, unde codul din zona paralelizată este executat de thread-ul master (cel cu id-ul 0).
+
+```c
+#pragma omp parallel
+{
+    #pragma omp master
+    {
+        // cod executat de un singur thread
+    }
+}
+```
+
 ## Construcții de sincronizare
+### Mutex
+Pentru zonele critice, unde avem operații de read-write, folosim directiva `#pragma omp critical`, care reprezintă un mutex, echivalentul lui `pthread_mutex_t` din pthreads, care asigură faptul că un singur thread accesează zona critică la un moment dat, thread-ul deținând lock-ul pe zona critică în momentul respectiv, și că celelalte thread-uri care nu au intrat încă în zona critică așteaptă eliberarea lock-ului de către thread-ul aflat în zona critică în acel moment.
+
+Exemplu de folosire:
+```c
+#include <stdio.h>
+#include <omp.h>
+
+int main (int argc, char** argv) {
+    int thread_id, sum = 0;
+    #pragma omp parallel private(thread_id) shared(sum)
+    {
+        thread_id = omp_get_thread_num();
+        #pragma omp critical
+        sum += thread_id;
+    }
+    printf("%d",sum);
+    
+    return 0;
+}
+```
+
+### Barieră
+Un alt element de sincronizare reprezintă bariera, care asigură faptul că niciun thread gestionat de barieră nu trece mai departe de aceasta decât atunci cand toate thread-urile gestionate de barieră au ajuns la punctul unde se află bariera.
+
+În OpenMP, pentru barieră avem directiva `#pragma omp barrier`, echivalent cu `pthread_barrier_t` din pthreads.
+
+Exemplu de folosire:
+```c
+#include <stdio.h>
+#include <omp.h>
+
+int main (int argc, char** argv) {
+    #pragma omp parallel 
+    {
+        printf("First print by %d\n", omp_get_thread_num());
+        #pragma omp barrier
+        printf("Second print by %d\n", omp_get_thread_num());
+    }
+    
+    return 0;
+}
+```
+
+### Reduction
+`reduction` este o directivă folosită pentru operații de tip reduce / fold pe arrays / colecții sau simple însumări / înmulțiri în cadrul unui loop. Mai precis, elementele dintr-un array sau indecșii unui loop sunt "acumulați" într-o singură variabilă, cu ajutorul unei operații, al cărui semn este precizat.
+
+Tipar: `reduction(operator_operatie:variabila_in_care_se_acumuleaza)`
+
+Exemplu de reduction: `reduction(+:sum)`, unde se însumează elementele unui array în variabila `sum`
+
+Exemplu de folosire de reduction:
+```c
+int sum = 0;
+
+#pragma omp parallel for reduction(+:sum) private(i)
+for (i = 1; i <= num_steps; i++) {
+    sum += i;
+}
+```
+### Atomic
+### Ordered
+## Clauze legate de vizibilitatea variabilelor
 ## Tasks (opțional)
 ## Exerciții
+1)
 ## Resurse

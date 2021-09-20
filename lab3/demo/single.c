@@ -20,8 +20,6 @@ void f2() {
 int main() {
     int i;
 
-
-
     #pragma omp parallel for ordered private(i)
     for (i = 0; i < 10; i++) {
         printf("** iteration %d thread no. %d\n", i, omp_get_thread_num());
