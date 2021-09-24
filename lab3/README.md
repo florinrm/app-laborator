@@ -236,9 +236,9 @@ int main() {
 ## Exerciții
 1)  **(10 puncte)** Paralelizați fișierul main.c din schelet, unde se citește un fișier, unde pe prima linie se află numărul de elemente pentru un array și pe următoarea linie se află array-ul respectiv, se face suma numerelor (aici faceți în trei moduri, separat, cu reduction, cu atomic și cu critical, unde veți măsura timpii de execuție - hint, folosiți directiva master ca un singur thread să facă măsurătorile), iar la final, cu ajutorul sections, scrieți timpii de execuție în trei fișiere (este deja implementată funcția de scriere în fișier).
 
-    Hint: o să aveți nevoie de barieră la citire și înainte de scrierea în fișiere. 
+Hint: o să aveți nevoie de barieră la citire și înainte de scrierea în fișiere. 
 
-    De probă, încercați să puneți ORDERED la for-urile paralelizate, pentru a vedea cum este afectată performanța.
+De probă, încercați să puneți ORDERED la for-urile paralelizate, pentru a vedea cum este afectată performanța.
 
 2) **(opțional)** Paralelizați folosind task-uri codul din tree.c (folosiți task-uri în funcțiile preorder și height - la ultima trebuie să folosiți taskwait).
 ## Resurse
