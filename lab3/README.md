@@ -142,9 +142,103 @@ for (i = 1; i <= num_steps; i++) {
 }
 ```
 ### Atomic
+Directiva ATOMIC permite executarea unor instrucțiuni în mod atomic, instrucțiuni care provoacă race conditions între thread-uri, problemă pe care această directivă o rezolvă.
+
+Exemplu de folosire:
+```c
+#include <stdio.h>
+#include <omp.h>
+
+int main (int argc, char** argv) {
+    int thread_id, sum = 0;
+    #pragma omp parallel private(thread_id) shared(sum)
+    {
+        thread_id = omp_get_thread_num();
+        #pragma omp atomic
+        sum += thread_id;
+    }
+    printf("%d",sum);
+    
+    return 0;
+}
+```
 ### Ordered
+Directiva ORDERED este folosit în for-uri cu scopul de a distribui în ordine iterațiile către thread-uri.
+
+Exemplu:
+```c
+#pragma omp parallel for ordered private(i)
+for (i = 0; i < 10; i++) {
+    printf("** iteration %d thread no. %d\n", i, omp_get_thread_num());
+}
+```    
+Afișare:
+```bash
+** iteration 9 thread no. 7
+** iteration 5 thread no. 3
+** iteration 6 thread no. 4
+** iteration 7 thread no. 5
+** iteration 4 thread no. 2
+** iteration 2 thread no. 1
+** iteration 3 thread no. 1
+** iteration 0 thread no. 0
+** iteration 1 thread no. 0
+** iteration 8 thread no. 6
+```
 ## Clauze legate de vizibilitatea variabilelor
+- `SHARED`
+- `PRIVATE` - variabilă cu valoarea vizibilă doar în blocul paralel (diferă de THREADPRIVATE)
+- `DEFAULT`
+- `REDUCTION`
+- `NONE`
+- `THREADPRIVATE` - fiecare thread are propriile sale copii ale unor variabile
+- `FIRSTPRIVATE` - folosit pentru ca variabilele `THREADPRIVATE` să aibă valorile, inițial, din exterior (dinainte)
+- `LASTPRIVATE` - invers FIRSTPRIVATE, ultima valoare asignată unei variabile `THREADPRIVATE` e vizibilă după blocul paralelizat
+- `COPYPRIVATE` - folosit în blocurile `SINGLE`, pentru a face vizibilă valoarea atribuită unei variabile într-un bloc `SINGLE` pentru toate thread-urile
+- `COPYIN` - asignarea unei variabile `THREADPRIVATE` este vizibilă tuturor thread-urilor
 ## Tasks (opțional)
+TODO
+
+Exemplu:
+```c
+#include <stdio.h>
+#include <omp.h>
+
+int fib(int n) {
+    int i, j;
+ 
+    if (n < 2) {
+        return n;
+    }
+ 
+    #pragma omp task shared(i)
+    i = fib(n-1);
+    
+    #pragma omp task shared(j)
+    j = fib(n-2);
+    
+    #pragma omp taskwait
+    return i + j;
+}
+
+
+int main() {
+    int n = 10;
+    omp_set_num_threads(4);
+    
+    #pragma omp parallel shared(n)
+    {
+        #pragma omp single
+        printf ("fib(%d) = %d\n", n, fib(n));
+    }
+}
+```
 ## Exerciții
-1) Paralelizați fișierul main.c din schelet, unde se citește un fișier, unde pe prima linie se află numărul de elemente pentru un array și pe următoarea linie se află array-ul respectiv, se face suma numerelor (aici faceți în trei moduri, separat, cu reduction, cu atomic și cu critical, unde veți măsura timpii de execuție - hint, folosiți directiva master ca un singur thread să facă măsurătorile), iar la final, cu ajutorul sections, scrieți timpii de execuție în trei fișiere (este deja implementată funcția de scriere în fișier). Hint: o să aveți nevoie de barieră la citire și înainte de scrierea în fișiere.
+1)  **(10 puncte)** Paralelizați fișierul main.c din schelet, unde se citește un fișier, unde pe prima linie se află numărul de elemente pentru un array și pe următoarea linie se află array-ul respectiv, se face suma numerelor (aici faceți în trei moduri, separat, cu reduction, cu atomic și cu critical, unde veți măsura timpii de execuție - hint, folosiți directiva master ca un singur thread să facă măsurătorile), iar la final, cu ajutorul sections, scrieți timpii de execuție în trei fișiere (este deja implementată funcția de scriere în fișier).
+
+    Hint: o să aveți nevoie de barieră la citire și înainte de scrierea în fișiere. 
+
+    De probă, încercați să puneți ORDERED la for-urile paralelizate, pentru a vedea cum este afectată performanța.
+
+2) **(opțional)** Paralelizați folosind task-uri codul din tree.c (folosiți task-uri în funcțiile preorder și height - la ultima trebuie să folosiți taskwait).
 ## Resurse
