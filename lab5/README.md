@@ -11,4 +11,5 @@
 ## Modele de programare
 ### Boss worker
 ### Work crew 
+### Pipeline
 ## Exerciții
