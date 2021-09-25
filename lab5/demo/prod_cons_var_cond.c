@@ -1,7 +1,3 @@
-/*
- * implementarea problemei producator consumator folosind monitor
- */
-
 #define _REENTRANT    1
 
 #include <stdio.h>
@@ -15,89 +11,86 @@
 
 #define BUF_LEN         3
 
-static pthread_mutex_t mutex;
-static pthread_cond_t full_cond;
-static pthread_cond_t empty_cond;
+pthread_mutex_t mutex; // folosit pentru incrementarea si decrementarea marimii buffer-ului
+pthread_cond_t full_cond; // cand buffer-ul este gol
+pthread_cond_t empty_cond; // cand buffer-ul este plin
 
-static char buffer[BUF_LEN];
-static int buf_cnt = 0;
+char buffer[BUF_LEN];
+int buf_cnt = 0;
 
-static void *producer_func (void *arg);
-static void *consumer_func (void *arg);
-static void my_pthread_sleep (int millis);
+void my_pthread_sleep(int millis) {
+	struct timeval timeout;
 
-int main (void)
-{
-        int i;
-        int type;
-        pthread_t tid_v[NUM_THREADS];
-        pthread_attr_t attr;
+	timeout.tv_sec = millis / 1000;
+	timeout.tv_usec = (millis % 1000) * 1000;
 
-        pthread_mutex_init (&mutex, NULL);
-        pthread_cond_init (&full_cond, NULL);
-        pthread_cond_init (&empty_cond, NULL);
-        pthread_attr_init (&attr);
-        pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
-
-        srand (time (NULL));
-        for (i = 0; i < NUM_THREADS; i++) {
-                type = rand () % 2;
-                if (type == CONSUMER)
-                        pthread_create (&tid_v[i], &attr, consumer_func, NULL);
-                else
-                        pthread_create (&tid_v[i], &attr, producer_func, NULL);
-        }
-
-        for (i = 0; i < NUM_THREADS; i++)
-                pthread_join (tid_v[i], NULL);
-
-        return 0;
+	select (0, NULL, NULL, NULL, &timeout);
 }
 
-static void my_pthread_sleep (int millis)
-{
-        struct timeval timeout;
+void *producer_func (void *arg) {
+	pthread_mutex_lock (&mutex);
+	
+	// cat timp buffer-ul este plin, producatorul asteapta
+	while (buf_cnt == BUF_LEN) {
+		pthread_cond_wait (&full_cond, &mutex);
+	}
 
-        timeout.tv_sec = millis / 1000;
-        timeout.tv_usec = (millis % 1000) * 1000;
+	buffer[buf_cnt] = 'a';
+	buf_cnt++;
+	printf ("Produs un element.\n");
 
-        select (0, NULL, NULL, NULL, &timeout);
+	pthread_cond_signal (&empty_cond);
+	my_pthread_sleep (rand () % 1000);
+
+	pthread_mutex_unlock (&mutex);
+
+	return NULL;
 }
 
-static void *producer_func (void *arg)
-{
-        pthread_mutex_lock (&mutex);
+void *consumer_func (void *arg) {
+	pthread_mutex_lock (&mutex);
 
-        while (buf_cnt == BUF_LEN)
-                pthread_cond_wait (&full_cond, &mutex);
+	// cat timp buffer-ul este gol, consumatorul asteapta
+	while (buf_cnt == 0) {
+		pthread_cond_wait (&empty_cond, &mutex);
+	}
 
-        buffer[buf_cnt] = 'a';
-        buf_cnt++;
-        printf ("Produs un element.\n");
+	buf_cnt--;
+	char elem = buffer[buf_cnt];
+	printf ("Consumat un element: %c\n", elem);
 
-        pthread_cond_signal (&empty_cond);
-        my_pthread_sleep (rand () % 1000);
+	pthread_cond_signal (&full_cond);
+	my_pthread_sleep (rand () % 1000);
 
-        pthread_mutex_unlock (&mutex);
+	pthread_mutex_unlock (&mutex);
 
-        return NULL;
+	return NULL;
 }
 
-static void *consumer_func (void *arg)
-{
-        pthread_mutex_lock (&mutex);
+int main() {
+	int i;
+	int type;
+	pthread_t tid_v[NUM_THREADS];
 
-        while (buf_cnt == 0)
-                pthread_cond_wait (&empty_cond, &mutex);
+	pthread_mutex_init (&mutex, NULL);
+	pthread_cond_init (&full_cond, NULL);
+	pthread_cond_init (&empty_cond, NULL);
 
-        buf_cnt--;
-        char elem = buffer[buf_cnt];
-        printf ("Consumat un element: %c\n", elem);
+	srand (time (NULL));
+	for (i = 0; i < NUM_THREADS; i++) {
+		type = rand () % 2;
+		if (type == CONSUMER) {
+			pthread_create (&tid_v[i], NULL, consumer_func, NULL);
+		} else {
+			pthread_create (&tid_v[i], NULL, producer_func, NULL);
+		}
+	}
 
-        pthread_cond_signal (&full_cond);
-        my_pthread_sleep (rand () % 1000);
+	for (i = 0; i < NUM_THREADS; i++) {
+		pthread_join (tid_v[i], NULL);
+	}
 
-        pthread_mutex_unlock (&mutex);
+	pthread_mutex_destroy(&mutex);
 
-        return NULL;
+	return 0;
 }

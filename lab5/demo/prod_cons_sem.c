@@ -1,7 +1,3 @@
-/*
- * implementarea problemei producator consumator folosind semafor
- */
-
 #define _REENTRANT    1
 
 #include <stdio.h>
@@ -16,92 +12,83 @@
 
 #define BUF_LEN         3
 
-static sem_t mutex;
-static sem_t full_sem;     /* semafor contor al elementelor pline */
-static sem_t empty_sem;    /* semafor contor al elementelor goale */
+pthread_mutex_t mutex;
+sem_t full_sem;     // semafor contor al elementelor pline
+sem_t empty_sem;    // semafor contor al elementelor goale
 
-static char buffer[BUF_LEN];
-static int buf_cnt = 0;
+char buffer[BUF_LEN];
+int buf_cnt = 0;
 
-static void *producer_func (void *arg);
-static void *consumer_func (void *arg);
-static void my_pthread_sleep (int millis);
+void my_pthread_sleep (int millis) {
+    struct timeval timeout;
 
-int main (void)
-{
-        int i;
-        int type;
-        pthread_t tid_v[NUM_THREADS];
-        pthread_attr_t attr;
+    timeout.tv_sec = millis / 1000;
+    timeout.tv_usec = (millis % 1000) * 1000;
 
-        /* semaforul pe post de mutex este initial deschis */
-        sem_init (&mutex, 0, 1);
+    select (0, NULL, NULL, NULL, &timeout);
+}
 
-        sem_init (&full_sem, 0, 0);
-        sem_init (&empty_sem, 0, 3);
+void *producer_func (void *arg) {
+    sem_wait (&empty_sem);
 
-        pthread_attr_init (&attr);
-        pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
+    pthread_mutex_lock (&mutex);
 
-        srand (time (NULL));
-        for (i = 0; i < NUM_THREADS; i++) {
-                type = rand () % 2;
-                if (type == CONSUMER)
-                        pthread_create (&tid_v[i], &attr, consumer_func, NULL);
-                else
-                        pthread_create (&tid_v[i], &attr, producer_func, NULL);
+    buffer[buf_cnt] = 'a';
+    buf_cnt++;
+    printf ("Produs un element.\n");
+
+	pthread_mutex_unlock (&mutex);
+
+    my_pthread_sleep (rand () % 1000);
+
+    sem_post (&full_sem);
+
+    return NULL;
+}
+
+void *consumer_func (void *arg) {
+    sem_wait (&full_sem);
+
+    pthread_mutex_lock (&mutex);
+
+    buf_cnt--;
+    char elem = buffer[buf_cnt];
+    printf ("Consumat un element: %c\n", elem);
+
+    pthread_mutex_unlock (&mutex);
+
+    my_pthread_sleep (rand () % 1000);
+
+    sem_post (&empty_sem);
+
+    return NULL;
+}
+
+int main () {
+    int i;
+    int type;
+    pthread_t tid_v[NUM_THREADS];
+
+    pthread_mutex_init (&mutex, NULL);
+
+    sem_init (&full_sem, 0, 0);
+    sem_init (&empty_sem, 0, 3);
+
+    srand (time (NULL));
+    for (i = 0; i < NUM_THREADS; i++) {
+        type = rand () % 2;
+        if (type == CONSUMER) {
+        	pthread_create (&tid_v[i], NULL, consumer_func, NULL);
+		} else {
+            pthread_create (&tid_v[i], NULL, producer_func, NULL);
         }
+	}
 
-        for (i = 0; i < NUM_THREADS; i++)
-                pthread_join (tid_v[i], NULL);
+    for (i = 0; i < NUM_THREADS; i++) {
+        pthread_join (tid_v[i], NULL);
+	}
 
-        return 0;
-}
+	pthread_mutex_destroy(&mutex);
 
-static void my_pthread_sleep (int millis)
-{
-        struct timeval timeout;
-
-        timeout.tv_sec = millis / 1000;
-        timeout.tv_usec = (millis % 1000) * 1000;
-
-        select (0, NULL, NULL, NULL, &timeout);
-}
-
-static void *producer_func (void *arg)
-{
-        sem_wait (&empty_sem);
-
-        sem_wait (&mutex);
-
-        buffer[buf_cnt] = 'a';
-        buf_cnt++;
-        printf ("Produs un element.\n");
-
-        sem_post (&mutex);
-
-        my_pthread_sleep (rand () % 1000);
-
-        sem_post (&full_sem);
-
-        return NULL;
-}
-
-static void *consumer_func (void *arg)
-{
-        sem_wait (&full_sem);
-
-        sem_wait (&mutex);
-
-        buf_cnt--;
-        char elem = buffer[buf_cnt];
-        printf ("Consumat un element: %c\n", elem);
-
-        sem_post (&mutex);
-
-        my_pthread_sleep (rand () % 1000);
-
-        sem_post (&empty_sem);
-
-        return NULL;
+    return 0;
 }

@@ -115,7 +115,229 @@ int main(int argc, char *argv[]) {
 }
 ```
 ### Semafor
+Un semafor este un element de sincronizare, care reprezintă o generalizare a mutex-ului. Semaforul are un contor care este incrementat la intrarea unui thread în zona de cod critică și care e decrementat când thread-ul respectiv iese din zona critică (contorul nu poate fi negativ în pthreads).
+
+Pentru a folosi semafoare în pthreads ne folosim de structura `sem_t`, pentru care trebuie să includem biblioteca `semaphore.h`.
+
+Semafoarele POSIX sunt de două tipuri:
+- cu nume - sincronizare între procese diferite
+- fără nume - sincronizare între thread-urile din cadrul aceluiași proces
+
+Funcții:
+- `int sem_init(sem_t *sem, int pshared, unsigned int value);` - inițiere semafor
+- `int sem_destroy(sem_t *sem);` - distrugere semafor
+- `int sem_post(sem_t *sem);` - acquire
+- `int sem_wait(sem_t *sem);` - release
+
+Exemplu folosire - producer - consumer:
+```c
+#define _REENTRANT    1
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <pthread.h>
+#include <semaphore.h>
+
+#define NUM_THREADS    50
+#define CONSUMER        0
+#define PRODUCER        1
+
+#define BUF_LEN         3
+
+pthread_mutex_t mutex;
+sem_t full_sem;     // semafor contor al elementelor pline
+sem_t empty_sem;    // semafor contor al elementelor goale
+
+char buffer[BUF_LEN];
+int buf_cnt = 0;
+
+void my_pthread_sleep (int millis) {
+    struct timeval timeout;
+
+    timeout.tv_sec = millis / 1000;
+    timeout.tv_usec = (millis % 1000) * 1000;
+
+    select (0, NULL, NULL, NULL, &timeout);
+}
+
+void *producer_func (void *arg) {
+    sem_wait (&empty_sem);
+
+    pthread_mutex_lock (&mutex);
+
+    buffer[buf_cnt] = 'a';
+    buf_cnt++;
+    printf ("Produs un element.\n");
+
+	pthread_mutex_unlock (&mutex);
+
+    my_pthread_sleep (rand () % 1000);
+
+    sem_post (&full_sem);
+
+    return NULL;
+}
+
+void *consumer_func (void *arg) {
+    sem_wait (&full_sem);
+
+    pthread_mutex_lock (&mutex);
+
+    buf_cnt--;
+    char elem = buffer[buf_cnt];
+    printf ("Consumat un element: %c\n", elem);
+
+    pthread_mutex_unlock (&mutex);
+
+    my_pthread_sleep (rand () % 1000);
+
+    sem_post (&empty_sem);
+
+    return NULL;
+}
+
+int main () {
+    int i;
+    int type;
+    pthread_t tid_v[NUM_THREADS];
+
+    pthread_mutex_init (&mutex, NULL);
+
+    sem_init (&full_sem, 0, 0);
+    sem_init (&empty_sem, 0, 3);
+
+    srand (time (NULL));
+    for (i = 0; i < NUM_THREADS; i++) {
+        type = rand () % 2;
+        if (type == CONSUMER) {
+        	pthread_create (&tid_v[i], NULL, consumer_func, NULL);
+		} else {
+            pthread_create (&tid_v[i], NULL, producer_func, NULL);
+        }
+	}
+
+    for (i = 0; i < NUM_THREADS; i++) {
+        pthread_join (tid_v[i], NULL);
+	}
+
+	pthread_mutex_destroy(&mutex);
+
+    return 0;
+}
+```
 ### Variabile condiție
+Variabilele condiție reprezintă o structură de sincronizare, care au asociat un mutex, și ele au un sistem de notificare a thread-urilor, astfel încât un thread să fie blocat până când apare o notificare de la alt thread. Pentru a putea folosi variabile condiție în pthreads ne folosim de structura `pthread_cond_t`.
+
+Variabilele condiție sunt folosite pentru a bloca thread-ul curent (mutexul și semaforul blochează celelalte thread-uri). Acestea permit unui thread să se blocheze până când o condiție devine adevărată, moment când condiția este semnalată de thread că a devenit adevărată și thread-ul / thread-urile blocate de condiție își reiau activitatea o variabilă condiție va avea mereu un mutex pentru a avea race condition, care apare când un thread 0 se pregătește să aștepte la variabila condiție și un thread 1 semnalează condiția înainte ca thread-ul 0 să se blocheze
+
+Funcții:
+- `int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t *attr);` - inițializare variabilă condiție
+- `int pthread_cond_destroy(pthread_cond_t *cond);` - distrugere variabilă condiție
+- `pthread_cond_t cond = PTHREAD_COND_INITIALIZER;` - inițializare statică a unei variabile condiție (atribute default, nu e nevoie de distrugere / eliberare)
+- `int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);` - blocarea unui thread care așteaptă după o variabilă condiție
+- `int pthread_cond_signal(pthread_cond_t *cond);` - deblocarea unui thread
+- `int pthread_cond_broadcast(pthread_cond_t *cond);` - deblocarea tuturor thread-urilor blocate
+
+Exemplu folosire - producer - consumer:
+```c
+#define _REENTRANT    1
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <pthread.h>
+
+#define NUM_THREADS    50
+#define CONSUMER        0
+#define PRODUCER        1
+
+#define BUF_LEN         3
+
+pthread_mutex_t mutex; // folosit pentru incrementarea si decrementarea marimii buffer-ului
+pthread_cond_t full_cond; // cand buffer-ul este gol
+pthread_cond_t empty_cond; // cand buffer-ul este plin
+
+char buffer[BUF_LEN];
+int buf_cnt = 0;
+
+void my_pthread_sleep(int millis) {
+	struct timeval timeout;
+
+	timeout.tv_sec = millis / 1000;
+	timeout.tv_usec = (millis % 1000) * 1000;
+
+	select (0, NULL, NULL, NULL, &timeout);
+}
+
+void *producer_func (void *arg) {
+	pthread_mutex_lock (&mutex);
+	
+	// cat timp buffer-ul este plin, producatorul asteapta
+	while (buf_cnt == BUF_LEN) {
+		pthread_cond_wait (&full_cond, &mutex);
+	}
+
+	buffer[buf_cnt] = 'a';
+	buf_cnt++;
+	printf ("Produs un element.\n");
+
+	pthread_cond_signal (&empty_cond);
+	my_pthread_sleep (rand () % 1000);
+
+	pthread_mutex_unlock (&mutex);
+
+	return NULL;
+}
+
+void *consumer_func (void *arg) {
+	pthread_mutex_lock (&mutex);
+
+	// cat timp buffer-ul este gol, consumatorul asteapta
+	while (buf_cnt == 0) {
+		pthread_cond_wait (&empty_cond, &mutex);
+	}
+
+	buf_cnt--;
+	char elem = buffer[buf_cnt];
+	printf ("Consumat un element: %c\n", elem);
+
+	pthread_cond_signal (&full_cond);
+	my_pthread_sleep (rand () % 1000);
+
+	pthread_mutex_unlock (&mutex);
+
+	return NULL;
+}
+
+int main() {
+	int i;
+	int type;
+	pthread_t tid_v[NUM_THREADS];
+
+	pthread_mutex_init (&mutex, NULL);
+	pthread_cond_init (&full_cond, NULL);
+	pthread_cond_init (&empty_cond, NULL);
+
+	srand (time (NULL));
+	for (i = 0; i < NUM_THREADS; i++) {
+		type = rand () % 2;
+		if (type == CONSUMER) {
+			pthread_create (&tid_v[i], NULL, consumer_func, NULL);
+		} else {
+			pthread_create (&tid_v[i], NULL, producer_func, NULL);
+		}
+	}
+
+	for (i = 0; i < NUM_THREADS; i++) {
+		pthread_join (tid_v[i], NULL);
+	}
+
+	pthread_mutex_destroy(&mutex);
+
+	return 0;
+}
+```
 ## Modele de programare
 ### Boss worker
 ### Work crew 
