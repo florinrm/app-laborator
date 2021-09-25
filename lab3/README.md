@@ -196,6 +196,7 @@ Afișare:
 - `LASTPRIVATE` - invers FIRSTPRIVATE, ultima valoare asignată unei variabile `THREADPRIVATE` e vizibilă după blocul paralelizat
 - `COPYPRIVATE` - folosit în blocurile `SINGLE`, pentru a face vizibilă valoarea atribuită unei variabile într-un bloc `SINGLE` pentru toate thread-urile
 - `COPYIN` - asignarea unei variabile `THREADPRIVATE` este vizibilă tuturor thread-urilor
+
 ## Tasks (opțional)
 Task-urile în OpenMP reprezintă un concept prin care putem să avem thread pools pentru paralelizarea de soluții ale căror dimensiune nu o știm (echivalent cu `ExecutorService` din Java). Un task este executat la un moment dat de către un thread din thread pool.
 
