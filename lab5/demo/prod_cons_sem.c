@@ -89,15 +89,13 @@ static void *producer_func (void *arg)
 
 static void *consumer_func (void *arg)
 {
-        char elem;
-
         sem_wait (&full_sem);
 
         sem_wait (&mutex);
 
         buf_cnt--;
-        elem = buffer[buf_cnt];
-        printf ("Consumat un element.\n");
+        char elem = buffer[buf_cnt];
+        printf ("Consumat un element: %c\n", elem);
 
         sem_post (&mutex);
 

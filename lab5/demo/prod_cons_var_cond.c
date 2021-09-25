@@ -85,17 +85,14 @@ static void *producer_func (void *arg)
 
 static void *consumer_func (void *arg)
 {
-        char elem;
-
         pthread_mutex_lock (&mutex);
 
         while (buf_cnt == 0)
                 pthread_cond_wait (&empty_cond, &mutex);
 
         buf_cnt--;
-        elem = buffer[buf_cnt];
-
-        printf ("Consumat un element.\n");
+        char elem = buffer[buf_cnt];
+        printf ("Consumat un element: %c\n", elem);
 
         pthread_cond_signal (&full_cond);
         my_pthread_sleep (rand () % 1000);
