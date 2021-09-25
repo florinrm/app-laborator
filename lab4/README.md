@@ -331,14 +331,17 @@ int main (int argc, char **argv) {
 
 ## Exerciții
 1) **(1 punct)** Rulați exemplele de cod din folder-ul de demo din cadrul laboratorului.
+
 2) **(3 puncte)** Scrieți un program ce adună un vector de elemente folosind MPI (pentru ușurință considerați că numărul de elemente e divizibil cu numărul de procese), folosind doar `MPI_Send` și `MPI_Recv`. Fiecare proces va calcula o suma intermediară, procesul master fiind cel care va calcula suma finală.
+
 3) **(3 puncte)** Extindeți programul de calcul al sumei unui vector prin adăugarea unui coeficient la suma finală, fiecare proces va calcula suma parțială * coeficient.
 
-    ```c
-    sum = sum * coeficient
-    ```
+```c
+sum = sum * coeficient
+```
 
-    Folosiți `MPI_Bcast` pentru a propaga valoarea coeficientului introdus de la tastatură.
+Folosiți `MPI_Bcast` pentru a propaga valoarea coeficientului introdus de la tastatură.
+
 4) **(3 puncte)** Modificați programul de calcul al sumei unui vector astfel încât să folosiți `MPI_Scatter` și `MPI_Gather` pentru transferul informației (vector parțial și suma parțială).
 
 ## Resurse
