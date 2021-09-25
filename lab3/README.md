@@ -197,7 +197,39 @@ Afișare:
 - `COPYPRIVATE` - folosit în blocurile `SINGLE`, pentru a face vizibilă valoarea atribuită unei variabile într-un bloc `SINGLE` pentru toate thread-urile
 - `COPYIN` - asignarea unei variabile `THREADPRIVATE` este vizibilă tuturor thread-urilor
 ## Tasks (opțional)
-TODO
+Task-urile în OpenMP reprezintă un concept prin care putem să avem thread pools pentru paralelizarea de soluții ale căror dimensiune nu o știm (echivalent cu `ExecutorService` din Java). Un task este executat la un moment dat de către un thread din thread pool.
+
+Pentru crearea unui task se folosește directiva `TASK`:
+```c
+#pragma omp task [clause1 [[,] clause2, ...]]
+```
+
+Pentru sincronizarea task-urilor (în sensul să așteptăm toate rezultatele task-urilor, în stilul barierei), se folosește directiva `TASKWAIT` (exemplu de folosire în exemplul Fibonacci de mai jos).
+
+În privința variabilelor dintr-un task, aici avem trei variante de variabile:
+- `shared` - toate task-urile au acces la aceeași adresă a unei variabile, o modificare asupra variabilei din partea unui task va fi vizibilă către toate task-urile (uneori putem avea potențial de erori în acest caz).
+- `firstprivate` - fiecare task va avea o copie a unei variabile inițializate cu o valoare înainte de crearea task-ului respectiv.
+- `private` - aici putem să avem variabile care nu sunt inițializate înainte de crearea task-ului și care să fie inițializate în cadrul task-ului.
+
+```c
+void f () {
+    double x1 = 1.0;
+    double x2 = 2.0;
+    #pragma omp parallel firstprivate(x2)
+    {
+        double x3 = 3.0; // private to each implicit task due to scope
+        #pragma omp task
+        {
+            double x4 = 4.0; // private due to scope
+            // x1 : shared ( shared by all implicit tasks )
+            // x2 : firstprivate ( due to “firstprivate(x2)” )
+            // x3 : firstprivate ( not shared by all implicit tasks )
+        }
+    }
+}
+```
+
+Pentru paralelizarea unor probleme recursive (Fibonacci, parcurgeri, etc.), task-urile reprezintă o soluție optimă în acest caz. De asemenea, putem crea task-uri în cadrul unui task părinte.
 
 Exemplu:
 ```c
@@ -206,17 +238,19 @@ Exemplu:
 
 int fib(int n) {
     int i, j;
+    printf("n = %d | Thread id = %d\n", n, omp_get_thread_num());
  
     if (n < 2) {
         return n;
     }
  
     #pragma omp task shared(i)
-    i = fib(n-1);
+    i = fib(n - 1);
     
     #pragma omp task shared(j)
-    j = fib(n-2);
+    j = fib(n - 2);
     
+    // se așteaptă să se termine task-urile de mai sus
     #pragma omp taskwait
     return i + j;
 }
@@ -233,12 +267,18 @@ int main() {
     }
 }
 ```
+
+Se pot observa asemănări între tasks și sections în ceea ce privește modul de folosire (se pot folosi sections în cadrul problemelor recursive), însă diferențele dintre aceastea sunt următoarele:
+- la sections instrucțiunile sunt executate imediat când thread-ul asociat acelui section ajunge în section-ul respectiv, când la tasks instrucțiunile pot fi executate după ce thread-ul asociat task-ului trece de task-ul respectiv
+- la sections putem avea overhead și load balancing slab
+
 ## Exerciții
 1)  **(10 puncte)** Paralelizați fișierul main.c din schelet, unde se citește un fișier, unde pe prima linie se află numărul de elemente pentru un array și pe următoarea linie se află array-ul respectiv, se face suma numerelor (aici faceți în trei moduri, separat, cu reduction, cu atomic și cu critical, unde veți măsura timpii de execuție - hint, folosiți directiva master ca un singur thread să facă măsurătorile), iar la final, cu ajutorul sections, scrieți timpii de execuție în trei fișiere (este deja implementată funcția de scriere în fișier).
 
 Hint: o să aveți nevoie de barieră la citire și înainte de scrierea în fișiere. 
 
-De probă, încercați să puneți ORDERED la for-urile paralelizate, pentru a vedea cum este afectată performanța.
+De probă, încercați să puneți `ORDERED` la for-urile paralelizate, pentru a vedea cum este afectată performanța.
 
-2) **(opțional)** Paralelizați folosind task-uri codul din tree.c (folosiți task-uri în funcțiile preorder și height - la ultima trebuie să folosiți taskwait).
+2) **(opțional)** Paralelizați folosind task-uri codul din `tree.c` (folosiți task-uri în funcțiile `preorder` și `height` - la ultima trebuie să folosiți `taskwait`).
 ## Resurse
+- [Cursuri de OpenMP, MPI, CUDA - COSC462](https://icl.cs.utk.edu/classes/cosc462/2017/)

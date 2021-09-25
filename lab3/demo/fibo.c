@@ -3,6 +3,8 @@
 
 int fib(int n) {
     int i, j;
+
+    printf("n = %d | Thread id = %d\n", n, omp_get_thread_num());
  
     if (n < 2) {
         return n;
