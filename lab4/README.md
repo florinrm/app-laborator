@@ -1,6 +1,25 @@
 # Laboratorul 4 - MPI
 ## Despre MPI
+MPI (Message Passing Interface) reprezintă un standard pentru comunicarea prin mesaje în cadrul programării distribuite, elaborat de MPI Forum, și are la bază modelul proceselor comunicante prin mesaje.
+
+Un proces reprezintă un program aflat în execuție și se poate defini ca o unitate de bază care poate executa una sau mai multe sarcini în cadrul unui sistem de operare. Spre deosebire de thread-uri, un proces are propriul său spațiu de adrese (propria zonă de memorie) și acesta poate avea, în cadrul său, mai multe thread-uri în execuție, care partajează resursele procesului.
 ## Compilare și rulare
+În cadrul lucrului în C/C++, MPI reprezintă o bibliotecă, care are funcționalitățile implementate într-un header numit `mpi.h`. Pentru compilare, la MPI există un compilator specific:
+- `mpicc`, pentru lucrul în C
+- `mpic++`, pentru lucrul în C++
+
+În ambele limbaje, pentru rularea unui program MPI folosim comanda `mpirun`, împreună cu parametrul `-np`, unde precizăm numărul de procese care rulează în cadrul programului distribuit.
+
+Exemplu:
+- compilare:
+    - C: `mpicc hello.c -o hello`
+    - C++: `mpic++ hello.cpp -o hello`
+- rulare: `mpirun -np 4 hello` - rulare cu 4 procese
+
+Dacă încercați să rulați comanda mpirun cu un număr de procese mai mare decât numărul de core-uri fizice disponibile pe procesorul vostru, este posibil să primiți o eroare cum ca nu aveți destule sloturi libere. Puteți elimina acea eroare adăugând parametrul `--oversubscribe` atunci când rulați mpirun.
+
+### Instalare MPI
+Pentru a lucra cu MPI, trebuie să instalați biblioteca pentru MPI pe Linux, folosind următoarea comandă: `sudo apt install openmpi-bin openmpi-common openmpi-doc libopenmpi-dev`
 ## Implementarea unui program distribuit în MPI
 Exemplu de program MPI - Hello World:
 ```c
@@ -304,4 +323,23 @@ int main (int argc, char **argv) {
 }
 ```
 ### Alte funcții
+- Funcții nonblocante: `MPI_Irecv`, `MPI_Isend`, `MPI_Ibcast`, `MPI_Igather`, `MPI_Iscatter` etc.
+- Funcții sincrone: `MPI_Ssend`, `MPI_Issend`
+- `MPI_Bsend` - send cu buffer
+- `MPI_Barrier` - barieră
+- `MPI_Reduce` - operație distribuită de reduce pe arrays
+
 ## Exerciții
+1) **(1 punct)** Rulați exemplele de cod din folder-ul de demo din cadrul laboratorului.
+2) **(3 puncte)** Scrieți un program ce adună un vector de elemente folosind MPI (pentru ușurință considerați că numărul de elemente e divizibil cu numărul de procese), folosind doar `MPI_Send` și `MPI_Recv`. Fiecare proces va calcula o suma intermediară, procesul master fiind cel care va calcula suma finală.
+3) **(3 puncte)** Extindeți programul de calcul al sumei unui vector prin adăugarea unui coeficient la suma finală, fiecare proces va calcula suma parțială * coeficient.
+
+    ```c
+    sum = sum * coeficient
+    ```
+
+    Folosiți `MPI_Bcast` pentru a propaga valoarea coeficientului introdus de la tastatură.
+4) **(3 puncte)** Modificați programul de calcul al sumei unui vector astfel încât să folosiți `MPI_Scatter` și `MPI_Gather` pentru transferul informației (vector parțial și suma parțială).
+
+## Resurse
+- [Laborator introductiv MPI - APD](https://ocw.cs.pub.ro/courses/apd/laboratoare/08)
