@@ -340,8 +340,20 @@ int main() {
 ```
 ## Modele de programare
 ### Boss worker
+TODO
 ### Work crew 
+TODO
 ### Pipeline
+TODO
+## Probleme de sincronizare - opțional
+### Producer - consumer
+TODO
+### Problema cititorilor și a scriitorilor (Readers - Writers)
+TODO
+### Problema filosofilor
+TODO
+### Problema bărbierului
+TODO
 ## Exerciții
 1) **(2.5 puncte)** Implementați bariera folosind variabile condiție pe baza scheletului.
 
