@@ -343,3 +343,16 @@ int main() {
 ### Work crew 
 ### Pipeline
 ## Exerciții
+1) **(2.5 puncte)** Implementați bariera folosind variabile condiție pe baza scheletului.
+
+2) **(2.5 puncte)** Implementați bariera folosind semafoare pe baza scheletului.
+
+3) **(2.5 puncte)** Rezolvați boss worker pe baza scheletului.
+
+4) **(2.5 puncte)** Rezolvați work crew pe baza scheletului.
+
+5) **(opțional)** Rezolvați problema bărbierului pe baza scheletului.
+
+6) **(opțional)** Rezolvați problema Readers-Writers pe baza scheletului.
+
+7) **(opțional)** Rezolvați problema filosofilor pe baza scheletului.
