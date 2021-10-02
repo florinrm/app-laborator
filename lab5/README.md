@@ -361,7 +361,7 @@ TODO
 
 3) **(2.5 puncte)** Rezolvați boss worker pe baza scheletului.
 
-4) **(2.5 puncte)** Rezolvați work crew pe baza scheletului.
+4) **(2.5 puncte)** Folosind work crew, implementați însumarea elementelor dintr-o matrice, cu împărțirea matricei pe linii / coloane, fiecare thread cu liniile / coloanele sale, pe baza scheletului.
 
 5) **(opțional)** Rezolvați problema bărbierului pe baza scheletului.
 
