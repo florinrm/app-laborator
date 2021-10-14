@@ -3,6 +3,7 @@
 
 int main(int argc, char** argv) {
     omp_set_num_threads(4);
+    omp_set_nested(1);
     #pragma omp parallel 
     {
         int tid = omp_get_thread_num();
