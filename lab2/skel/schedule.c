@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 #define CHUNKSIZE 10
-#define N 10000000
+#define N 100000
 
 int main(int argc, char *argv[]) 
 {
