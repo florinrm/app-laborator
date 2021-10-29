@@ -1,8 +1,153 @@
 # Laboratorul 5 - pthreads
 ## Despre pthreads
+pthreads reprezintă o bibliotecă din C/C++, nativă Linux, prin care se pot implementa programe multithreaded.
+
+Spre deosebire de OpenMP, pthreads este low-level și oferă o mai mare flexibilitate în ceea ce privește sincronizarea thread-urilor și distribuirea task-urilor către thread-uri.
 ## Implementarea unui program paralel în pthreads
 ### Includere și compilare
+Pentru a putea folosi pthreads, este necesar să includem în program biblioteca `pthread.h`. De asemenea la compilare este necesar să includem flag-ul `-lpthread`:
+```bash
+gcc -o program program.c -lpthread
+./program
+```
 ### Crearea și terminarea thread-urilor
+În pthreads, avem un thread principal, pe care rulează funcția main. Din thread-ul principal se pot crea thread-uri noi, care vor executa task-uri în paralel.
+
+Pentru a crea thread-uri în pthreads, folosim funcția `pthread_create`:
+```c
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*thread_function) (void *), void *arg);
+```
+unde:
+- thread - thread-ul pe care vrem să-l pornim
+- attr - atributele unui thread (NULL - atribute default)
+- thread_function - funcția pe care să o execute thread-ul
+- arg - parametrul trimis la funcția executată de thread (dacă vrem să trimitem mai mulți parametri, îi împachetăm într-un struct
+
+Exemplu de funcție pe care o execută un thread:
+```c
+void *f(void *arg) {
+	// do stuff
+	// aici putem să întoarcem un rezultat, dacă este cazul
+    pthread_exit(NULL); // termină un thread - mereu apelat la finalul unei funcții executate de thread, dacă nu întoarcem un rezultat în funcție
+}
+
+```
+
+Pentru terminarea thread-urilor, care vor fi "lipite înapoi" în thread-ul principal, folosim funcția `pthread_join`, care așteaptă terminarea thread-urilor:
+```c
+int pthread_join(pthread_t thread, void **retval);
+```
+unde:
+- thread - thread-ul pe care îl așteptăm să termine
+- retval - valoarea de retur a funcției executate de thread (poate fi NULL)
+
+Exemplu de program scris folosind pthreads:
+```c
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+ 
+#define NUM_THREADS 2
+ 
+void *f(void *arg)
+{
+    long id = *(long*) arg;
+    printf("Hello World din thread-ul %ld!\n", id);
+    return NULL;
+}
+ 
+int main(int argc, char *argv[])
+{
+    pthread_t threads[NUM_THREADS];
+    int r;
+    long id;
+    void *status;
+    long arguments[NUM_THREADS];
+ 
+    for (id = 0; id < NUM_THREADS; id++) {
+        arguments[id] = id;
+        r = pthread_create(&threads[id], NULL, f, (void *) &arguments[id]);
+ 
+        if (r) {
+            printf("Eroare la crearea thread-ului %ld\n", id);
+            exit(-1);
+        }
+    }
+ 
+    for (id = 0; id < NUM_THREADS; id++) {
+        r = pthread_join(threads[id], &status);
+ 
+        if (r) {
+            printf("Eroare la asteptarea thread-ului %ld\n", id);
+            exit(-1);
+        }
+    }
+ 
+    return 0;
+}
+```
+
+În caz că dorim să trimitem mai mulți parametri funcției executate de threads, facem un struct, în care incapsulăm datele, și îl trimitem ca parametru al funcției executate de threads.
+
+Exemplu:
+```c
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+ 
+#define NUM_THREADS 8
+
+struct pair {
+    int first, second;
+};
+ 
+void *f(void *arg)
+{
+    struct pair info = *(struct pair*) arg;
+    printf("First = %d; second = %d\n", info.first, info.second);
+    pthread_exit(NULL);
+}
+ 
+int main(int argc, char *argv[])
+{
+    pthread_t threads[NUM_THREADS];
+    int r;
+    long id;
+    void *status;
+    struct pair arguments[NUM_THREADS];
+ 
+    for (id = 0; id < NUM_THREADS; id++) {
+        arguments[id].first = id;
+        arguments[id].second = id * 2;
+        r = pthread_create(&threads[id], NULL, f, (void *) &arguments[id]);
+ 
+        if (r) {
+            printf("Eroare la crearea thread-ului %ld\n", id);
+            exit(-1);
+        }
+    }
+ 
+    for (id = 0; id < NUM_THREADS; id++) {
+        r = pthread_join(threads[id], &status);
+ 
+        if (r) {
+            printf("Eroare la asteptarea thread-ului %ld\n", id);
+            exit(-1);
+        }
+    }
+ 
+    pthread_exit(NULL);
+}
+```
+
+Când dorim să paralelizăm operații efectuate pe arrays, fiecărui thread îi va reveni o bucată din array, pe acea bucată executând funcția atribuită lui (thread-ului).
+
+Formula de împărțire:
+- `start_index = id * (double) n / p`
+- `end_index = min(n, (id + 1) * (double) n / p))`, unde id = id-ul thread-ului, n = dimensiunea array-ului, p = numărul de threads
+
+![thread_array](../media/lab5/thread_array.png)
+
 ## Elemente de sincronizare
 ### Mutex
 Un mutex (mutual exclusion) este folosit pentru a delimita și pentru a proteja o zonă critică, unde au loc, de regulă, operații de citire și de scriere. Un singur thread intră în zona critică (o rezervă pentru el - lock), unde se execută instrucțiuni, iar celelalte thread-uri așteaptă ca thread-ul curent să termine de executat instrucțiunile din zona critică. După ce thread-ul curent termină de executat instrucțiuni în zona critică, aceasta o eliberează (unlock) și următorul thread urmează aceiași pași.
@@ -340,18 +485,136 @@ int main() {
 ```
 ## Modele de programare
 ### Boss worker
-TODO
+Modelul boss-worker este o versiune generalizată a modelului producer-consumer, unde avem un thread cu rolul de boss / master, care produce task-uri, și restul thread-urilor au rol de worker, ele având rolul de a executa task-urile produse de thread-ul boss.
+
+Task-urile sunt puse într-o coadă de către thread-ul boss și preluate de către thread-urile worker, care le execută.
+
+În general avem un singur thread boss, dar putem avea mai multe thread-uri de tip boss.
+
+Probleme ce pot apărea:
+- performanța când sunt multe task-uri executate prin refolosirea thread-urilor
+- resursele limitate pentru execuția thread-urilor
+- probleme de sincronizare
+
+Boss worker se poate implementa folosind:
+- două variabile condiționale
+	- prima folosită de thread-urile worker să aștepte când coada este goală. Dacă nu e goală, workers semnalează thread-urilor boss și iau din coadă
+	- a doua folosită de thread-urile boss să aștepte când coada este plină. Dacă nu e plină, boss semnalează thread-urilor worker și pune în coadă.
+- un mutex - protejează coada, variabilele condiționale și contoarele
+- o coadă - sincronizare când se pun / preiau date de către thread-uri
+	- dimensiunea cozii poate să fie:
+		- statică - sunt necesare două variabile condiție (una pentru boss, alta pentru workers)
+		- dinamică - o necesară o variabilă condiție pentru workers (când coada e goală), dar are un dezavantaj pentru boss, mai precis acesta poate să fie supraîncărcat cu task-uri
+
+- trei contoare:
+	- numărul de task-uri în coadă
+	- numărul de thread-uri worker în așteptare
+	- numărul de thread-uri boss în așteptare
+
+Thread-urile acționează într-o buclă continuă în ceea ce privește crearea și execuția task-urilor și ele nu își termină execuția când coada este goală, astfel trebuie să avem o modalitate de terminare a execuției thread-urilor boss și workers.
+
+Putem face terminarea thread-urilor în două moduri:
+- un task special de tip ”exit” pentru thread-urile worker, care se vor opri când primesc acest task (ordinea task-urilor să fie FIFO)
+- coada să aibă un flag de exit (ea trebuie să fie goală), setat de către thread-ul boss. Thread-urile worker se opresc când văd că coada este goală și flag-ul de exit setat pe true, iar apoi thread-ul boss se oprește
+
 ### Work crew 
-TODO
-### Pipeline
-TODO
+Work crew reprezintă un model de programare paralelă, unde avem un thread principal și N - 1 thread-uri, care sunt controlate de către thread-ul principal, care le creează. Cele N - 1 thread-uri sunt thread-uri de tip worker, care execută task-uri distribuite de către thread-ul principal, pe care, de asemenea, le execută, după ce thread-urile worker au terminat execuția lor. 
 ## Probleme de sincronizare - opțional
 ### Producer - consumer
-TODO
+Problema se referă la două thread-uri: producător și consumator. Producătorul inserează date într-un buffer, iar consumatorul extrage date din acel buffer. Buffer-ul are o dimensiune prestabilită, astfel că:
+- producătorul nu poate insera date dacă buffer-ul este plin
+- consumatorul nu poate extrage date dacă buffer-ul este gol
+- producătorul și consumatorul nu pot acționa simultan asupra buffer-ului
+
+O implementare corectă a problemei presupune asigurarea faptului că nu vor exista situații de deadlock, adică situații în care cele două thread-uri așteaptă unul după celălalt, neexitând posibilitatea de a se debloca.
+
+Această problemă se poate rezolva în mai multe moduri (rezolvările sunt mai sus, în cadrul textului laboratorului):
+- folosind semafoare
+- folosind variabile condiție
+
+Pseudocod varianta cu semafoare:
+```
+T buffer = new T[k];
+semaphore gol(k);
+semaphore plin(0);
+mutex mutexP, mutexC;
+
+producer(int id) {
+	T v;
+	while (true) {
+		v = produce();
+		P(gol);
+
+		mutexP.lock();
+		buf.add(v);
+		mutexP.unlock();
+		
+		V(plin);
+	}
+}
+
+consumer(int id) {
+	T v;
+	while (true) {
+		P(plin);
+
+		mutexC.lock();
+		v = buf.poll();
+		mutexC.unlock();
+
+		V(gol);
+		consume(v);
+	}
+}
+```
 ### Problema cititorilor și a scriitorilor (Readers - Writers)
+Avem o zonă de memorie asupra căreia au loc mai multe acțiuni de citire și de scriere. Această zonă de memorie este partajată de mai multe thread-uri, care sunt de două tipuri: cititori (care execută acțiuni de citire din zona de memorie) și scriitori (care execută acțiuni de scriere în zona de memorie).
+
+În această privință avem niște constrângeri:
+- un scriitor poate scrie în zona de memorie doar dacă nu avem cititori care citesc din zona respectivă în același timp și dacă nu avem alt scriitor care scrie în același timp în aceeași zonă de memorie.
+- un cititor poate să citească în zona de memorie doar dacă nu există un scriitor care scrie în zona de memorie în același timp, însă putem să avem mai mulți cititori care citesc în paralel în același timp din aceeași zonă de memorie.
+
+Pentru această problemă avem două soluții:
+- folosind excludere mutuală, cu prioritate pe cititori
+- folosind sincronizare condiționată, cu prioritate pe scriitori
+
+#### Soluția cu excludere mutuală
+TODO
+#### Soluția cu sincronizare condiționată
 TODO
 ### Problema filosofilor
-TODO
+Problema se referă la mai mulți filozofi (thread-uri) așezați la o masă circulară. Pe masă se află N farfurii și N tacâmuri, astfel încât fiecare filozof are un tacâm în stânga și unul în dreapta lui. În timp ce stau la masă, filozofii pot face două acțiuni: mănâncă sau se gândesc. Pentru a mânca, un filozof are nevoie de două tacâmuri (pe care le poate folosi doar dacă nu sunt luate de către vecinii săi).
+
+Rezolvarea trebuie să aibă în vedere dezvoltarea unui algoritm prin care să nu se ajungă la un deadlock (situația în care fiecare filozof ține câte un tacâm în mână și așteaptă ca vecinul să elibereze celălalt tacâm de care are nevoie).
+
+Ca soluție, avem în felul următor: vom avea N lock-uri (având în vedere că avem N thread-uri), fiecare filosof va folosi câte două lock-uri. Pentru a evita deadlock-ul, totul va funcționa în felul următor:
+- fiecare din primele N - 1 thread-uri va face lock mai întâi pe lock pe lock[i], apoi pe lock[i + 1], apoi execută o acțiune, apoi face release pe lock[i], apoi pe lock[i + 1].
+- al N-lea thread va face lock mai întâi pe lock[0], apoi pe lock[N - 1] (deci invers față de restul thread-urilor), execută o acțiune, apoi face release pe lock[0], apoi pe lock[N - 1].
+
+Pseudocod:
+```
+Lock[] locks = new Lock[N];
+
+philosopher(int id) {
+	while (true) {
+		if (id != N - 1) {
+			locks[id].lock();
+			locks[id + 1].lock();
+			// eat
+			locks[id].release();
+			locks[id + 1].release();
+			// think
+		} else {
+			locks[0].lock();
+			locks[N - 1].lock();
+			// eat
+			locks[0].release();
+			locks[N - 1].release();
+			// think
+		}
+	} 
+}
+```
 ### Problema bărbierului
 TODO
 ## Exerciții
