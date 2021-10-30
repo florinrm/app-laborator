@@ -543,26 +543,26 @@ producer(int id) {
 	T v;
 	while (true) {
 		v = produce();
-		P(gol);
+		gol.acquire();
 
 		mutexP.lock();
 		buf.add(v);
 		mutexP.unlock();
 		
-		V(plin);
+		plin.release();
 	}
 }
 
 consumer(int id) {
 	T v;
 	while (true) {
-		P(plin);
+		plin.acquire();
 
 		mutexC.lock();
 		v = buf.poll();
 		mutexC.unlock();
 
-		V(gol);
+		gol.release();
 		consume(v);
 	}
 }
@@ -579,9 +579,119 @@ Pentru această problemă avem două soluții:
 - folosind sincronizare condiționată, cu prioritate pe scriitori
 
 #### Soluția cu excludere mutuală
-TODO
+Folosind această soluție, un cititor nu va aștepta ca ceilalți cititori să termine de citit zona de memorie, chiar dacă avem un scriitor care așteaptă. Un scriitor poate să aștepte foarte mult, în caz că sunt foarte mulți scriitor, fapt ce poate duce la un fenomen numit writer's starvation.
+
+De asemenea, nu poate să intre un scriitor cât timp există deja un scriitor care scrie în zona de memorie partajată.
+
+Pseudocod:
+```
+int readers = 0; 
+mutex mutexNumberOfReaders; // sau semaphore mutexNumberOfReaders(1);
+semaphore readWrite(1); // sau mutex readWrite
+
+reader (int id) {
+	while (true)
+		mutexNumberOfReaders.lock();
+		readers = readers + 1;
+		if (readers == 1) {
+			readWrite.acquire(); // dacă e primul cititor
+		};
+		mutexNumberOfReaders.unlock();
+		// citește din resursa comună;
+		
+		mutexNumberOfReaders.lock();
+		readers = readers - 1;
+		if (readers == 0) {
+			readWrite.release(); // dacă e ultimul cititor
+		}
+		mutexNumberOfReaders.unlock();
+	}
+}
+
+writer(int id) {
+	while (true) {
+		readWrite.acquire();
+		// scrie în resursa comună;
+		readWrite.release();
+	}
+}
+```
 #### Soluția cu sincronizare condiționată
-TODO
+Folosind această soluție, niciun cititor nu va intra în zona de memorie partajată cât timp există un scriitor care scrie în zona de memorie. De asemenea, nu poate să intre alt scriitor cât timp există un scriitor care se află în zona de memorie partajată.
+
+```
+int readers = 0; // cititori care citesc din zona de memorie
+int writers = 0; // scriitori care scriu în zona de memorie (va fi doar unul)
+
+int waiting_readers = 0; // cititori care așteaptă să intre în zona de memorie
+int waiting_writers = 0; // scriitori care așteaptă să intre în zona de memorie
+
+semaphore sem_writer(0); // semafor folosit pentru a pune scriitori în așteptare, dacă avem un scriitor sau unul sau mai mulți cititori în zona de memorie (zona critică)
+
+semaphore sem_reader(0); // semafor folosit pentru a pune cititori în așteptare dacă avem un scriitor care scrie în zona de memorie sau dacă avem scriitori în așteptare (deoarece ei au prioritate față de cititori)
+
+semaphore enter(1); // semafor folosit pe post de mutex
+
+reader(int id) {
+	while(true) {
+		enter.acquire();
+
+		if (writers > 0 || waiting_writers > 0) {
+			waiting_readers++;
+			enter.release();
+			sem_reader.acquire();
+		}
+
+		readers++;
+		if (waiting_readers > 0) {
+			waiting_readers--;
+			sem_reader.release();
+		} else if (waiting_readers == 0) {
+			enter.release();
+		}
+
+		// citește din zona partajată
+
+		enter.acquire();
+		readers--;
+		if (readers == 0 && waiting_writers > 0) {
+			waiting_writers--;
+			sem_writer.acquire();
+		} else if (readers > 0 || waiting_writers == 0) {
+			enter.release();
+		}
+	}
+}
+
+reader(int id) {
+	while(true) {
+		enter.acquire();
+		
+		if (readers > 0 || writers > 0) {
+			waiting_writers++;
+			enter.release();
+			sem_writer.acquire();
+		}
+
+		writers++;
+
+		enter.release();
+		// scrie în zona partajată
+		enter.acquire();
+
+		writers--;
+		if (waiting_readers > 0 && waiting_writers == 0) {
+			waiting_readers--;
+			sem_reader.release();
+		} else if (waiting_writers > 0) {
+			waiting_writers--;
+			sem_writer.release();
+		} else if (waiting_readers == 0 && waiting_writers == 0) {
+			enter.release();
+		}
+	}
+}
+```
 ### Problema filosofilor
 Problema se referă la mai mulți filozofi (thread-uri) așezați la o masă circulară. Pe masă se află N farfurii și N tacâmuri, astfel încât fiecare filozof are un tacâm în stânga și unul în dreapta lui. În timp ce stau la masă, filozofii pot face două acțiuni: mănâncă sau se gândesc. Pentru a mânca, un filozof are nevoie de două tacâmuri (pe care le poate folosi doar dacă nu sunt luate de către vecinii săi).
 
@@ -616,7 +726,53 @@ philosopher(int id) {
 }
 ```
 ### Problema bărbierului
-TODO
+Avem următoarea situație: avem o frizerie cu un bărbier (un thread), un scaun de bărbier, N scaune de așteptare și M clienți (M thread-uri).
+
+La această problemă avem următoarele constrângeri:
+- bărbierul doarme atunci când nu sunt clienți
+- când vine un client, acesta fie trezește bărbierul, fie așteaptă dacă bărbierul este ocupat
+- dacă toate scaunele sunt ocupate, clientul pleacă
+
+```
+int freeChairs = 0;
+semaphore clients(0);
+semaphore barber_ready(0);
+semaphore chairs(1); // sau mutex
+
+barber() {
+	while(true) {
+		clients.acquire(); // se caută client; dacă există, el este chemat
+		
+		chairs.acquire(); // are client, un scaun este eliberat
+		
+		freeChairs++; // scaun eliberat
+
+		barber_ready.release(); // bărbierul e gata să tundă
+		chairs.release(); // freeChairs modificat
+
+		// tunde bărbierul
+	}
+}
+
+client(int id) {
+	while(true) {
+		chairs.acquire(); // vine un client și caută un scaun liber
+		if (freeChairs > 0) {
+			freeChairs--; // clientul a găsit scaun
+			
+			clients.release(); // bărbierul știe că s-a ocupat un scaun de un client
+			
+			chairs.release(); // freeChairs modificat
+			
+			barber_ready.acquire(); // clientul își așteaptă rândul la tuns
+		} else {
+			// nu sunt scaune libere
+			chairs.acquire();
+			// clientul pleacă netuns
+		}
+	}
+}
+```
 ## Exerciții
 1) **(2.5 puncte)** Implementați bariera folosind variabile condiție pe baza scheletului.
 
