@@ -58,19 +58,8 @@ int main(int argc, char const *argv[]) {
     // worker threads
     pthread_t threads[no_threads];
     int tids[no_threads];
-    tids[0] = 0;
-
-    for (int i = 1; i < no_threads; i++) {
-        tids[i] = i;
-        pthread_create(&threads[i], NULL, do_sum, &tids[i]);
-    }
-
-    // master thread
-    do_sum(&tids[0]);
-
-    for (int i = 1; i < no_threads; i++) {
-        pthread_join(threads[i], NULL);
-    }
+    
+    // TODO
 
     for (int i = 0; i < size; i++) {
         total_sum += results[i];
