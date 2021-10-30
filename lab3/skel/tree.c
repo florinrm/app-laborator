@@ -38,7 +38,7 @@ void preorder(binary_search_tree *tree) {
 }
 
 int maximum (int a, int b) {
-	return a <= b ? a : b;
+	return a >= b ? a : b;
 }
 
 int height (binary_search_tree *tree) {
