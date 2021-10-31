@@ -9,6 +9,9 @@
 
 #define CHAIRS 3
 #define CLIENTS 7
+
+#define SERVED 1
+#define UNSERVED 2
     
 pthread_mutex_t served_client_mutex;
 
@@ -20,8 +23,28 @@ int chairs;
 int total_clients;
 
 int available_chairs;
-int left_and_unserved_clients = 0;
+int left_clients[CLIENTS];
 time_t waiting_time_sum;
+
+int are_remaining_clients() {
+    int count = 0;
+    for (int i = 0; i < CLIENTS; i++) {
+        if (left_clients[i]) {
+            count++;
+        }
+    }
+
+    return count != CLIENTS;
+}
+
+// dummy function for serving a client
+void service_client() {
+    int s = rand() % 401;
+    s = s * 1000;
+    printf("brrr, cutting client's hair\n");
+    usleep(s);
+    printf("done cutting hair\n");
+}
 
 void *barber_function(void *idp) {    
     int counter = 0;
@@ -54,21 +77,12 @@ void *barber_function(void *idp) {
         printf("Client %d was served.\n", counter);
         counter++; 
 
-        if (counter == (total_clients - left_and_unserved_clients)) {
+        if (!are_remaining_clients()) {
             break;
         }
 
     }
     pthread_exit(NULL);    
-}
-
-// dummy function for serving a client
-void service_client() {
-    int s = rand() % 401;
-    s = s * 1000;
-    printf("brrr, cutting client's hair\n");
-    usleep(s);
-    printf("done cutting hair\n");
 }
 
 void *customer_function(void *idp) {  
@@ -93,12 +107,13 @@ void *customer_function(void *idp) {
         // Lock semaphore "barber_ready" - wait for barber to get ready
         sem_wait(&barber_ready); 
 
-        printf("Client %d is being served. \n", client_id);        
+        printf("Client %d is being served. \n", client_id);
+        left_clients[client_id] = SERVED; 
     } else {
         // Unlock semaphore "modifySeats"
         sem_post(&modifySeats);
-        left_and_unserved_clients++;
         printf("Client %d left.\n", client_id);
+        left_clients[client_id] = UNSERVED;
     }
         
     pthread_exit(NULL);
@@ -122,7 +137,11 @@ int main() {
     
     chairs = CHAIRS;
     total_clients = CLIENTS;
-    available_chairs = CHAIRS; 
+    available_chairs = CHAIRS;
+
+    for (int i = 0; i < CLIENTS; i++) {
+        left_clients[i] = 0;
+    }
     
     /* Create barber thread*/
     int barber_result = pthread_create(&barber, NULL, (void *)barber_function, NULL);  
@@ -146,6 +165,13 @@ int main() {
     for (int i = 0; i < CLIENTS; i++) {
         pthread_join(clients[i], NULL);
     }
-        
-    printf("Number of customers that were forced to leave and got unserved: %d\n", left_and_unserved_clients);    	
+
+    int unserved_clients = 0;
+    for (int i = 0; i < CLIENTS; i++) {
+        if (left_clients[i] == UNSERVED) {
+            unserved_clients++;
+        }
+    }
+
+    printf("There are %d unserved clients\n", unserved_clients);
 }
