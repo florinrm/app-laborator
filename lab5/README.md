@@ -534,37 +534,37 @@ Această problemă se poate rezolva în mai multe moduri (rezolvările sunt mai 
 
 Pseudocod varianta cu semafoare:
 ```
-T buffer = new T[k];
+T[] buffer = new T[k];
 semaphore gol(k);
 semaphore plin(0);
-mutex mutexP, mutexC;
+mutex mutex;
 
 producer(int id) {
-	T v;
-	while (true) {
-		v = produce();
+    T v;
+    while (true) {
+        v = produce();
 		gol.acquire();
 
-		mutexP.lock();
+		mutex.lock();
 		buf.add(v);
-		mutexP.unlock();
-		
+		mutex.unlock();
+			
 		plin.release();
-	}
+    }
 }
 
 consumer(int id) {
-	T v;
-	while (true) {
-		plin.acquire();
+    T v;
+    while (true) {
+        plin.acquire();
 
-		mutexC.lock();
+		mutex.lock();
 		v = buf.poll();
-		mutexC.unlock();
+		mutex.unlock();
 
 		gol.release();
 		consume(v);
-	}
+    }
 }
 ```
 ### Problema cititorilor și a scriitorilor (Readers - Writers)
@@ -585,87 +585,112 @@ De asemenea, nu poate să intre un scriitor cât timp există deja un scriitor c
 
 Pseudocod:
 ```
+// numărul de cititori care citesc simultan din resursa comună
 int readers = 0; 
+
+// mutex (sau semafor) folosit pentru a modifica numărul de cititori
 mutex mutexNumberOfReaders; // sau semaphore mutexNumberOfReaders(1);
+
+// semafor (sau mutex) folosit pentru protejarea resursei comune
 semaphore readWrite(1); // sau mutex readWrite
 
 reader (int id) {
-	while (true)
-		mutexNumberOfReaders.lock();
+    while (true)
+        mutexNumberOfReaders.lock();
 		readers = readers + 1;
+			// dacă e primul cititor, atunci rezervăm zona de memorie încât să nu intre niciun scriitor
 		if (readers == 1) {
-			readWrite.acquire(); // dacă e primul cititor
+			readWrite.acquire(); 
 		};
 		mutexNumberOfReaders.unlock();
-		// citește din resursa comună;
 		
+			// citește din resursa comună;
+			
 		mutexNumberOfReaders.lock();
 		readers = readers - 1;
+			// dacă e ultimul cititor, eliberăm zona de de memorie din care s-a citit
 		if (readers == 0) {
-			readWrite.release(); // dacă e ultimul cititor
+			readWrite.release();
 		}
 		mutexNumberOfReaders.unlock();
-	}
+    }
 }
 
-writer(int id) {
-	while (true) {
-		readWrite.acquire();
-		// scrie în resursa comună;
-		readWrite.release();
-	}
+writer (int id) {
+    while (true) {
+        // intră scriitorul în resursa comună
+        readWrite.acquire();
+        
+        // scrie în resursa comună;
+	
+        // scriitorul eliberează resursa
+        readWrite.release();
+    }
 }
 ```
 #### Soluția cu sincronizare condiționată
 Folosind această soluție, niciun cititor nu va intra în zona de memorie partajată cât timp există un scriitor care scrie în zona de memorie. De asemenea, nu poate să intre alt scriitor cât timp există un scriitor care se află în zona de memorie partajată.
 
 ```
-int readers = 0; // cititori care citesc din zona de memorie
-int writers = 0; // scriitori care scriu în zona de memorie (va fi doar unul)
+// cititori care citesc din zona de memorie
+int readers = 0;
+// scriitori care scriu în zona de memorie
+// (va fi doar unul, nu pot fi mai mulți scriitori care scriu simultan)
+int writers = 0;
 
 int waiting_readers = 0; // cititori care așteaptă să intre în zona de memorie
 int waiting_writers = 0; // scriitori care așteaptă să intre în zona de memorie
 
-semaphore sem_writer(0); // semafor folosit pentru a pune scriitori în așteptare, dacă avem un scriitor sau unul sau mai mulți cititori în zona de memorie (zona critică)
+// semafor folosit pentru a pune scriitori în așteptare, dacă avem un scriitor
+// sau unul sau mai mulți cititori în zona de memorie (zona critică)
+semaphore sem_writer(0);
 
-semaphore sem_reader(0); // semafor folosit pentru a pune cititori în așteptare dacă avem un scriitor care scrie în zona de memorie sau dacă avem scriitori în așteptare (deoarece ei au prioritate față de cititori)
+// semafor folosit pentru a pune cititori în așteptare dacă avem un scriitor care scrie în zona de memorie
+// sau dacă avem scriitori în așteptare (deoarece ei au prioritate față de cititori)
+semaphore sem_reader(0);
 
-semaphore enter(1); // semafor folosit pe post de mutex
+// semafor folosit pe post de mutex pentru protejarea zonei de memorie (zona critică)
+semaphore enter(1); 
 
-reader(int id) {
-	while(true) {
-		enter.acquire();
+reader (int id) {
+    while(true) {
+        enter.acquire();
 
+        // dacă avem cel puțin un scriitor care scrie în resursa comună
+        // sau dacă avem un scriitor în așteptare, cititorul așteaptă
 		if (writers > 0 || waiting_writers > 0) {
 			waiting_readers++;
 			enter.release();
 			sem_reader.acquire();
 		}
 
-		readers++;
+			readers++;
 		if (waiting_readers > 0) {
-			waiting_readers--;
+				// a venit încă un cititor în resursa comună,
+				// ieșind din starea de așteptare
+			
+				waiting_readers--;
 			sem_reader.release();
 		} else if (waiting_readers == 0) {
 			enter.release();
 		}
 
 		// citește din zona partajată
-
 		enter.acquire();
-		readers--;
-		if (readers == 0 && waiting_writers > 0) {
+			readers--;
+			
+			if (readers == 0 && waiting_writers > 0) {
 			waiting_writers--;
-			sem_writer.acquire();
+			sem_writer.release();
 		} else if (readers > 0 || waiting_writers == 0) {
 			enter.release();
 		}
-	}
+    }
 }
 
-reader(int id) {
-	while(true) {
-		enter.acquire();
+writer (int id) {
+    while(true) {
+        enter.acquire();
 		
 		if (readers > 0 || writers > 0) {
 			waiting_writers++;
@@ -676,8 +701,10 @@ reader(int id) {
 		writers++;
 
 		enter.release();
-		// scrie în zona partajată
-		enter.acquire();
+	
+        // scrie în zona partajată
+	
+        enter.acquire();
 
 		writers--;
 		if (waiting_readers > 0 && waiting_writers == 0) {
@@ -689,7 +716,7 @@ reader(int id) {
 		} else if (waiting_readers == 0 && waiting_writers == 0) {
 			enter.release();
 		}
-	}
+    }
 }
 ```
 ### Problema filosofilor
@@ -734,43 +761,43 @@ La această problemă avem următoarele constrângeri:
 - dacă toate scaunele sunt ocupate, clientul pleacă
 
 ```
-int freeChairs = 0;
+int freeChairs = N;
 semaphore clients(0);
 semaphore barber_ready(0);
 semaphore chairs(1); // sau mutex
 
 barber() {
-	while(true) {
-		clients.acquire(); // se caută client; dacă există, el este chemat
+    while(true) {
+        clients.acquire(); // se caută client; dacă există, el este chemat
 		
-		chairs.acquire(); // are client, un scaun este eliberat
-		
+		chairs.acquire(); // are client, un scaun este eliberat, modificăm freeChairs
+			
 		freeChairs++; // scaun eliberat
 
 		barber_ready.release(); // bărbierul e gata să tundă
 		chairs.release(); // freeChairs modificat
 
 		// tunde bărbierul
-	}
+    }
 }
 
 client(int id) {
-	while(true) {
-		chairs.acquire(); // vine un client și caută un scaun liber
-		if (freeChairs > 0) {
+    while(true) {
+        chairs.acquire(); // vine un client și caută un scaun liber
+        if (freeChairs > 0) {
 			freeChairs--; // clientul a găsit scaun
-			
+				
 			clients.release(); // bărbierul știe că s-a ocupat un scaun de un client
-			
+				
 			chairs.release(); // freeChairs modificat
-			
+				
 			barber_ready.acquire(); // clientul își așteaptă rândul la tuns
 		} else {
 			// nu sunt scaune libere
-			chairs.acquire();
+			chairs.release();
 			// clientul pleacă netuns
 		}
-	}
+    }
 }
 ```
 ## Exerciții

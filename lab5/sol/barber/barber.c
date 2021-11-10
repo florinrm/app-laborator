@@ -19,7 +19,6 @@ sem_t barber_ready;
 sem_t client_ready;
 sem_t modifySeats;
 
-int chairs;
 int total_clients;
 
 int available_chairs;
@@ -135,7 +134,6 @@ int main() {
     sem_init(&barber_ready, 0, 0);
     sem_init(&modifySeats, 0, 1);
     
-    chairs = CHAIRS;
     total_clients = CLIENTS;
     available_chairs = CHAIRS;
 

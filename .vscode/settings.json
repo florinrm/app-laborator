@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "atomic": "c"
+        "atomic": "c",
+        "chrono": "c",
+        "stdio.h": "c"
     }
 }
