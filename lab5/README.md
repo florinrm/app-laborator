@@ -801,9 +801,9 @@ client(int id) {
 }
 ```
 ## Exerciții
-1) **(2.5 puncte)** Implementați bariera folosind variabile condiție pe baza scheletului.
+1) **(2.5 puncte)** Implementați bariera folosind variabile condiție.
 
-2) **(2.5 puncte)** Implementați bariera folosind semafoare pe baza scheletului.
+2) **(2.5 puncte)** Implementați bariera folosind semafoare.
 
 3) **(2.5 puncte)** Rezolvați boss worker pe baza scheletului.
 
