@@ -3,7 +3,7 @@
 - la primul laborator să aveți cel puțin codul serial al proiectului (ca punct de start)
 - să vă folosiți de wiki pe GitLab (nu de README, în README puteți scrie legat de setup-ul proiectului, de exemplu script-uri, comenzi de setup, etc.), unde veți scrie în fiecare săptămână ce ați făcut: la ce a lucrat fiecare, ce a făcut fiecare, ce rezultate ați obținut (timpi, speed-up), să puneți grafice
 - la partea de grafice e de recomandat să faceți în felul următor:
-    - pentru fiecare versiune (pthreads, OpenMP, MPI, etc.), să faceți grafic unde pe axa OX să aveți dimensiunea problemei (N, size, etc.), dar pe axa OY să aveți numărul de thread-uri / procese
+    - pentru fiecare versiune (pthreads, OpenMP, MPI, etc.), să faceți grafic unde pe axa OX să aveți numărul de thread-uri / procese, dar pe axa OY să aveți timpii de execuție
     - la final să aveți un grafic comparativ pentru toate versiunile (acest fapt este obligatoriu, încât să se vadă ce versiune este cea mai optimă ca speed-up)
 - să puneți screenshots cu analiza performanței făcută cu tool-urile de profiling (Solaris Studio, VTune, etc.) pe wiki pe GitLab și la prezentarea finală
 - în fiecare săptămână trebuie să lucreze fiecare din echipă la partea sa (de exemplu cineva face la OpenMP - implementare și grafice), încât să treceți pe wiki pe GitLab ce a făcut fiecare persoană în fiecare săptămână
