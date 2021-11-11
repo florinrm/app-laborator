@@ -21,3 +21,5 @@ Exemple de proiecte cu documentație bună:
 - https://gitlab.cs.pub.ro/APP-2020/FFT
 - https://gitlab.cs.pub.ro/APP-2020/HER-FCNN-ADAM
 - https://gitlab.cs.pub.ro/APP-2020/fractals
+
+[Link demo Solaris](https://youtu.be/_8v8YI1-a-0)
