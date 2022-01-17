@@ -34,6 +34,6 @@ Fiecare echipă va prezenta proiectul în aproximativ 10 minute, folosind slides
 
 Documentația de pe GitLab (care trebuie să fie pe wiki) trebuie să cuprindă aspectele afișate în cadrul prezentării, în detaliu (rezultate, grafice, profiling, observații).
 
-Aici aveți exemple de prezentări de anul trecut.
+[Aici](https://github.com/florinrm/app-laborator/tree/main/proiect/exemple-prezentari) aveți exemple de prezentări de anul trecut.
 
 După prezentare, fiecare membru din cadrul echipei va primi trei întrebări din materia de laborator.
