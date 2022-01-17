@@ -23,3 +23,17 @@ Exemple de proiecte cu documentație bună:
 - https://gitlab.cs.pub.ro/APP-2020/fractals
 
 [Link demo Solaris](https://youtu.be/_8v8YI1-a-0)
+
+## Prezentarea proiectului
+Fiecare echipă va prezenta proiectul în aproximativ 10 minute, folosind slides, unde vor expune:
+- ideea proiectului și ce presupune proiectul lor (adică ce face)
+- ce paralelizări au făcut și cum au făcut paralelizările
+- rezultatele obținute la paralelizări și observații pe seama rezultatelor obținute (grafice, profiling)
+- compararea paralelizărilor (grafice comparative, observații)
+- concluzii
+
+Documentația de pe GitLab (care trebuie să fie pe wiki) trebuie să cuprindă aspectele afișate în cadrul prezentării, în detaliu (rezultate, grafice, profiling, observații).
+
+Aici aveți exemple de prezentări de anul trecut.
+
+După prezentare, fiecare membru din cadrul echipei va primi trei întrebări din materia de laborator.
